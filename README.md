@@ -51,6 +51,19 @@ make install
 ```text
 Revision history for Modern::Perl::Prelude
 
+0.004  2026-03-17
+    - Add argument handling tests in t/03-args.t
+    - Reach 100% statement, branch, subroutine and total coverage
+    - Fix UTF-8 option tests to match real lexical behavior
+    - Silence once-only package variable warning in args test
+    - Finalize test suite for use/no and option validation paths
+
+0.003  2026-03-17
+    - Make unimport honest: only undo native pragmata/features
+    - Fix no.t to test only reliably reversible native features
+    - Clarify POD about import-only compat layers
+	- Fix Makefile.PL
+
 0.002  2026-03-17
     - Add unimport support: no Modern::Perl::Prelude
     - Add author tests
