@@ -1,5 +1,9 @@
 # Modern::Perl::Prelude
 
+[![License](https://img.shields.io/badge/license-Perl%205-blue.svg)](https://dev.perl.org/licenses/)
+[![Perl](https://img.shields.io/badge/perl-5.30%2B-blue.svg)](https://www.perl.org/)
+[![CI](https://github.com/neo1ite/Modern-Perl-Prelude/actions/workflows/ci.yml/badge.svg)](https://github.com/neo1ite/Modern-Perl-Prelude/actions/workflows/ci.yml)
+
 A small lexical prelude for writing modern-style Perl on Perl 5.30+.
 
 ## What it enables by default
@@ -134,11 +138,11 @@ no Modern::Perl::Prelude;
 This reliably disables native pragmata/features managed directly by the module, such as:
 
 * `strict`
-* warnings
-* say
-* state
-* fc
-* utf8
+* `warnings`
+* `say`
+* `state`
+* `fc`
+* `utf8`
 
 Compatibility layers are treated as import-only for cross-version use on Perl 5.30+, so they are not guaranteed to be symmetrically undone by:
 
@@ -165,7 +169,7 @@ Optional compatibility layers are loaded lazily and only when explicitly request
 
 Using `MakeMaker`:
 
-```bash
+```shell
 perl Makefile.PL
 make
 make test
@@ -174,13 +178,13 @@ make install
 
 Using `cpanm` for dependencies:
 
-```bash
+```shell
 cpanm --installdeps .
 ```
 
 Including author/develop dependencies:
 
-```bash
+```shell
 cpanm --with-develop --installdeps .
 ```
 
@@ -188,19 +192,19 @@ cpanm --with-develop --installdeps .
 
 Run normal tests:
 
-```bash
+```shell
 make test
 ```
 
 Run author tests:
 
-```bash
+```shell
 prove -lv xt/author
 ```
 
 Run coverage:
 
-```bash
+```shell
 cover -delete
 HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t xt/author
 cover
