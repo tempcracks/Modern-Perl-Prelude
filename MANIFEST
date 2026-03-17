@@ -10,5 +10,7 @@ lib/Modern/Perl/Prelude.pm
 t/00-load.t
 t/01-import.t
 t/02-no.t
+t/03-args.t
 xt/author/00-pod.t
 xt/author/01-eol.t
+xt/author/02-pod-coverage.t
