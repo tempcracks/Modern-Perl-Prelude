@@ -27,8 +27,8 @@ WriteMakefile(
     },
 
     META_MERGE => {
-        meta-spec => { version => 2 },
-        resources => {
+        'meta-spec' => { version => 2 },
+        'resources' => {
             repository => {
                 type => 'git',
                 url  => 'git@example.com:your-org/Modern-Perl-Prelude.git',

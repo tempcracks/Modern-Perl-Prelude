@@ -31,7 +31,7 @@ Optional UTF-8 source mode:
 use Modern::Perl::Prelude '-utf8';
 ```
 
-Lexically disable it again:
+Disable native pragmata/features lexically again:
 
 ```perl
 no Modern::Perl::Prelude;

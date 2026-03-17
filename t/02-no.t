@@ -16,34 +16,31 @@ PERL
 
 ok(!$ok_say, 'say unavailable after no Modern::Perl::Prelude');
 
-my $ok_trim = eval <<'PERL';
-    package Local::Prelude::No::Trim;
+my $ok_fc = eval <<'PERL';
+    package Local::Prelude::No::Fc;
 
     use Modern::Perl::Prelude;
     no Modern::Perl::Prelude;
 
-    my $x = trim("  x  ");
+    my $x = fc("Straße");
     1;
 PERL
 
-ok(!$ok_trim, 'trim unavailable after no Modern::Perl::Prelude');
+ok(!$ok_fc, 'fc unavailable after no Modern::Perl::Prelude');
 
-my $ok_try = eval <<'PERL';
-    package Local::Prelude::No::Try;
+my $ok_state = eval <<'PERL';
+    package Local::Prelude::No::State;
 
     use Modern::Perl::Prelude;
     no Modern::Perl::Prelude;
 
-    try {
-        die "boom\n";
-    }
-    catch ($e) {
-        return 1;
+    {
+        state $v = 1;
     }
 
     1;
 PERL
 
-ok(!$ok_try, 'try/catch unavailable after no Modern::Perl::Prelude');
+ok(!$ok_state, 'state unavailable after no Modern::Perl::Prelude');
 
 done_testing;

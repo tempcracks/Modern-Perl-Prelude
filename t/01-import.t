@@ -22,7 +22,6 @@ my $ok = eval <<'PERL';
             local *STDOUT = $fh;
             say 'hello';
         }
-        chomp $out;
 
         my $trimmed = trim("  hello \n");
         my $folded  = fc("Straße");

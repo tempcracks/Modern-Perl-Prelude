@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
-our $VERSION = '0.002';
+our $VERSION = '0.004';
 
 use Import::Into ();
 use strict   ();
@@ -67,8 +67,6 @@ sub unimport {
     warnings->unimport::out_of($target);
 
     feature->unimport::out_of($target, @FEATURES);
-    Feature::Compat::Try->unimport::out_of($target);
-    builtin::compat->unimport::out_of($target, @BUILTINS);
 
     utf8->unimport::out_of($target);
 
@@ -117,7 +115,7 @@ Optional UTF-8 source mode:
 
     use Modern::Perl::Prelude '-utf8';
 
-Disable it lexically:
+Disable native pragmata/features lexically again:
 
     no Modern::Perl::Prelude;
 
@@ -170,6 +168,23 @@ This module makes the following available in the caller's lexical scope:
     weaken
     unweaken
     is_weak
+
+=head1 UNIMPORT
+
+C<no Modern::Perl::Prelude> reliably disables native pragmata/features
+managed by this module:
+
+    strict
+    warnings
+    say
+    state
+    fc
+    utf8
+
+Compatibility layers such as C<Feature::Compat::Try> and
+C<builtin::compat> are treated as import-only for cross-version use on
+Perl 5.30+ and are not guaranteed to be symmetrically undone by
+C<no Modern::Perl::Prelude>.
 
 =head1 DESIGN NOTES
 
