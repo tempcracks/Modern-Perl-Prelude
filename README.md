@@ -46,7 +46,7 @@ make test
 make install
 ```
 
-## `Changes`
+## Changes
 
 ```text
 Revision history for Modern::Perl::Prelude
