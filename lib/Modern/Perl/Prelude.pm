@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
-our $VERSION = '0.004';
+our $VERSION = '0.005';
 
 use Import::Into ();
 use strict   ();
@@ -38,6 +38,8 @@ my @BUILTINS = qw(
 
 my %KNOWN_ARG = map { $_ => 1 } qw(
     -utf8
+    -class
+    -defer
 );
 
 sub import {
@@ -54,6 +56,12 @@ sub import {
 
     utf8->import::into($target) if $arg{'-utf8'};
 
+    _import_optional_compat($target, 'Feature::Compat::Class')
+        if $arg{'-class'};
+
+    _import_optional_compat($target, 'Feature::Compat::Defer')
+        if $arg{'-defer'};
+
     return;
 }
 
@@ -67,7 +75,6 @@ sub unimport {
     warnings->unimport::out_of($target);
 
     feature->unimport::out_of($target, @FEATURES);
-
     utf8->unimport::out_of($target);
 
     return;
@@ -85,6 +92,17 @@ sub _parse_args {
     }
 
     return %arg;
+}
+
+sub _import_optional_compat {
+    my ($target, $module) = @_;
+
+    (my $file = "$module.pm") =~ s{::}{/}g;
+    require $file;
+
+    $module->import::into($target);
+
+    return;
 }
 
 1;
@@ -115,6 +133,22 @@ Optional UTF-8 source mode:
 
     use Modern::Perl::Prelude '-utf8';
 
+Optional class syntax:
+
+    use Modern::Perl::Prelude '-class';
+
+Optional defer syntax:
+
+    use Modern::Perl::Prelude '-defer';
+
+Any combination is allowed:
+
+    use Modern::Perl::Prelude qw(
+        -utf8
+        -class
+        -defer
+    );
+
 Disable native pragmata/features lexically again:
 
     no Modern::Perl::Prelude;
@@ -141,6 +175,9 @@ It enables:
 
 =back
 
+Additional compatibility layers may be requested explicitly via import
+options.
+
 =head1 IMPORT OPTIONS
 
 =head2 -utf8
@@ -149,9 +186,18 @@ Also enables source-level UTF-8, like:
 
     use utf8;
 
-=head1 EXPORTED FEATURES
+=head2 -class
 
-This module makes the following available in the caller's lexical scope:
+Loads and imports C<Feature::Compat::Class> into the caller scope.
+
+=head2 -defer
+
+Loads and imports C<Feature::Compat::Defer> into the caller scope.
+
+=head1 DEFAULT IMPORTS
+
+This module always makes the following available in the caller's lexical
+scope:
 
     say
     state
@@ -169,6 +215,18 @@ This module makes the following available in the caller's lexical scope:
     unweaken
     is_weak
 
+=head1 OPTIONAL IMPORTS
+
+When requested explicitly, this module can also make the following available:
+
+=over 4
+
+=item * C<-class> enables C<class>, C<method>, C<field>, C<ADJUST>
+
+=item * C<-defer> enables C<defer>
+
+=back
+
 =head1 UNIMPORT
 
 C<no Modern::Perl::Prelude> reliably disables native pragmata/features
@@ -181,7 +239,8 @@ managed by this module:
     fc
     utf8
 
-Compatibility layers such as C<Feature::Compat::Try> and
+Compatibility layers such as C<Feature::Compat::Try>,
+C<Feature::Compat::Class>, C<Feature::Compat::Defer>, and
 C<builtin::compat> are treated as import-only for cross-version use on
 Perl 5.30+ and are not guaranteed to be symmetrically undone by
 C<no Modern::Perl::Prelude>.
@@ -192,9 +251,12 @@ This is a lexical prelude module. It is implemented via C<Import::Into> so
 that pragmata and lexical functions affect the caller's scope, not the scope
 of this wrapper module itself.
 
+Optional compatibility layers are loaded lazily, only when explicitly
+requested by import options.
+
 =head1 AUTHOR
 
-Your Name E<lt>you@example.comE<gt>
+Sergey Kovalev E<lt>skov@cpan.orgE<gt>
 
 =head1 LICENSE
 
