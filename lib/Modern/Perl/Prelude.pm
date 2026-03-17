@@ -1,0 +1,189 @@
+package Modern::Perl::Prelude;
+
+use v5.30;
+use strict;
+use warnings;
+
+# ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
+our $VERSION = '0.002';
+
+use Import::Into ();
+use strict   ();
+use warnings ();
+use feature  ();
+use utf8     ();
+
+use Feature::Compat::Try ();
+use builtin::compat      ();
+
+my @FEATURES = qw(
+    say
+    state
+    fc
+);
+
+my @BUILTINS = qw(
+    blessed
+    refaddr
+    reftype
+    trim
+    ceil
+    floor
+    true
+    false
+    weaken
+    unweaken
+    is_weak
+);
+
+my %KNOWN_ARG = map { $_ => 1 } qw(
+    -utf8
+);
+
+sub import {
+    my ($class, @args) = @_;
+    my %arg    = _parse_args(@args);
+    my $target = caller;
+
+    strict->import::into($target);
+    warnings->import::into($target);
+
+    feature->import::into($target, @FEATURES);
+    Feature::Compat::Try->import::into($target);
+    builtin::compat->import::into($target, @BUILTINS);
+
+    utf8->import::into($target) if $arg{'-utf8'};
+
+    return;
+}
+
+sub unimport {
+    my ($class, @args) = @_;
+    _parse_args(@args);
+
+    my $target = caller;
+
+    strict->unimport::out_of($target);
+    warnings->unimport::out_of($target);
+
+    feature->unimport::out_of($target, @FEATURES);
+    Feature::Compat::Try->unimport::out_of($target);
+    builtin::compat->unimport::out_of($target, @BUILTINS);
+
+    utf8->unimport::out_of($target);
+
+    return;
+}
+
+sub _parse_args {
+    my @args = @_;
+    my %arg;
+
+    for my $arg (@args) {
+        die __PACKAGE__ . qq{: unknown import option "$arg"\n}
+            unless $KNOWN_ARG{$arg};
+
+        $arg{$arg} = 1;
+    }
+
+    return %arg;
+}
+
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+Modern::Perl::Prelude - Project prelude for modern Perl style on Perl 5.30+
+
+=head1 SYNOPSIS
+
+    use Modern::Perl::Prelude;
+
+    state $counter = 0;
+    my $s = trim("  hello  ");
+
+    try {
+        die "boom\n";
+    }
+    catch ($e) {
+        warn $e;
+    }
+
+Optional UTF-8 source mode:
+
+    use Modern::Perl::Prelude '-utf8';
+
+Disable it lexically:
+
+    no Modern::Perl::Prelude;
+
+=head1 DESCRIPTION
+
+This module bundles a small, opinionated set of pragmata, features, and
+compatibility layers for writing Perl in a Perl 5.40+-style while staying
+runnable on Perl 5.30+.
+
+It enables:
+
+=over 4
+
+=item * strict
+
+=item * warnings
+
+=item * feature C<say>, C<state>, C<fc>
+
+=item * C<Feature::Compat::Try>
+
+=item * selected functions from C<builtin::compat>
+
+=back
+
+=head1 IMPORT OPTIONS
+
+=head2 -utf8
+
+Also enables source-level UTF-8, like:
+
+    use utf8;
+
+=head1 EXPORTED FEATURES
+
+This module makes the following available in the caller's lexical scope:
+
+    say
+    state
+    fc
+    try / catch
+    blessed
+    refaddr
+    reftype
+    trim
+    ceil
+    floor
+    true
+    false
+    weaken
+    unweaken
+    is_weak
+
+=head1 DESIGN NOTES
+
+This is a lexical prelude module. It is implemented via C<Import::Into> so
+that pragmata and lexical functions affect the caller's scope, not the scope
+of this wrapper module itself.
+
+=head1 AUTHOR
+
+Your Name E<lt>you@example.comE<gt>
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut

@@ -1,0 +1,14 @@
+.github/workflows/ci.yml
+.gitignore
+Changes
+MANIFEST
+MANIFEST.SKIP
+Makefile.PL
+README.md
+cpanfile
+lib/Modern/Perl/Prelude.pm
+t/00-load.t
+t/01-import.t
+t/02-no.t
+xt/author/00-pod.t
+xt/author/01-eol.t
