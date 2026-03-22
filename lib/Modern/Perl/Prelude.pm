@@ -5,13 +5,14 @@ use strict;
 use warnings;
 
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 use Import::Into ();
 use strict   ();
 use warnings ();
 use feature  ();
 use utf8     ();
+use true     ();
 
 use Feature::Compat::Try ();
 use builtin::compat      ();
@@ -41,6 +42,7 @@ my %KNOWN_FLAG = map { $_ => 1 } qw(
     -class
     -defer
     -corinna
+    -always_true
 );
 
 my %KNOWN_HASH_KEY = map { $_ => 1 } qw(
@@ -48,6 +50,7 @@ my %KNOWN_HASH_KEY = map { $_ => 1 } qw(
     class
     defer
     corinna
+    always_true
 );
 
 sub import {
@@ -67,6 +70,8 @@ sub import {
     builtin::compat->import::into($target, @BUILTINS);
 
     utf8->import::into($target) if $config->{utf8};
+
+    _set_always_true(1) if $config->{always_true};
 
     _import_optional_module($target, 'Feature::Compat::Class', $config->{class})
         if $config->{class};
@@ -92,6 +97,8 @@ sub unimport {
 
     feature->unimport::out_of($target, @FEATURES);
     utf8->unimport::out_of($target);
+
+    _set_always_true(0) if $config->{always_true};
 
     return;
 }
@@ -147,6 +154,19 @@ sub _validate_config {
     return;
 }
 
+sub _set_always_true {
+    my ($enabled) = @_;
+
+    if ($enabled) {
+        true->import();
+    }
+    else {
+        true->unimport();
+    }
+
+    return;
+}
+
 sub _import_optional_module {
     my ($target, $module, $opts) = @_;
 
@@ -190,15 +210,15 @@ Modern::Perl::Prelude - Project prelude for modern Perl style on Perl 5.30+
 Flag-style optional imports:
 
     use Modern::Perl::Prelude '-utf8';
-    use Modern::Perl::Prelude '-class';
-    use Modern::Perl::Prelude '-defer';
-    use Modern::Perl::Prelude '-corinna';
+    use Modern::Perl::Prelude qw/-class -defer/;
+    use Modern::Perl::Prelude qw(-corinna -always_true);
 
 Hash-style optional imports:
 
     use Modern::Perl::Prelude {
-        utf8 => 1,
-        defer => 1,
+        utf8        => 1,
+        defer       => 1,
+        always_true => 1,
     };
 
 Disable native pragmata/features lexically again:
@@ -206,6 +226,7 @@ Disable native pragmata/features lexically again:
     no Modern::Perl::Prelude;
     no Modern::Perl::Prelude '-utf8';
     no Modern::Perl::Prelude { utf8 => 1 };
+    no Modern::Perl::Prelude '-always_true';
 
 =head1 DESCRIPTION
 
@@ -263,6 +284,7 @@ Supported flags:
     -class
     -defer
     -corinna
+    -always_true
 
 Examples:
 
@@ -273,13 +295,20 @@ Examples:
         -defer
     );
 
+    use Modern::Perl::Prelude qw(
+        -class
+        -utf8
+        -always_true
+    );
+
 =head2 Hash-style
 
 Hash-style arguments must be passed as a single hash reference:
 
     use Modern::Perl::Prelude {
-        utf8 => 1,
-        defer => 1,
+        utf8        => 1,
+        defer       => 1,
+        always_true => 1,
     };
 
 Supported hash keys:
@@ -294,11 +323,15 @@ Supported hash keys:
 
 =item * C<corinna>
 
+=item * C<always_true>
+
 =back
 
 For compatibility-layer options (C<class>, C<defer>, C<corinna>), a true
 scalar enables the feature. A hash reference also enables it and is passed
 through to the underlying module's C<import>.
+
+For C<always_true>, use a boolean value.
 
 =head2 -utf8 / utf8
 
@@ -325,6 +358,15 @@ class syntax.
 
 C<-class> and C<-corinna> are mutually exclusive.
 
+=head2 -always_true / always_true
+
+Enables automatic true return for the currently-compiling file via C<true>,
+so modules can omit a trailing:
+
+    1;
+
+This behavior is file-scoped rather than lexically-scoped.
+
 =head1 OPTIONAL IMPORTS
 
 When requested explicitly, this module can also make the following available:
@@ -336,6 +378,8 @@ When requested explicitly, this module can also make the following available:
 =item * C<-defer> / C<defer> enables C<defer>
 
 =item * C<-corinna> / C<corinna> enables class syntax via C<Object::Pad>
+
+=item * C<-always_true> / C<always_true> enables automatic true return for the current file
 
 =back
 
@@ -357,6 +401,12 @@ C<builtin::compat> are treated as import-only for cross-version use on
 Perl 5.30+ and are not guaranteed to be symmetrically undone by
 C<no Modern::Perl::Prelude>.
 
+C<always_true> is an exception: C<no Modern::Perl::Prelude '-always_true'> or
+
+    no Modern::Perl::Prelude { always_true => 1 };
+
+disables the automatic true-return behavior for the current file.
+
 =head1 DESIGN NOTES
 
 This is a lexical prelude module. It is implemented via C<Import::Into> so
@@ -365,6 +415,8 @@ of this wrapper module itself.
 
 Optional compatibility layers are loaded lazily, only when explicitly
 requested.
+
+The C<always_true> option is implemented via C<true> and is file-scoped.
 
 =head1 AUTHOR
 

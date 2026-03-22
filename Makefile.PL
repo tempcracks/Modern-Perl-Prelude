@@ -20,6 +20,7 @@ WriteMakefile(
         'Import::Into'         => 0,
         'Feature::Compat::Try' => 0,
         'builtin::compat'      => 0,
+        'true::VERSION'        => 0,
     },
 
     TEST_REQUIRES => {

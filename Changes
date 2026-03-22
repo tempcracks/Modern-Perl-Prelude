@@ -1,5 +1,15 @@
 Revision history for Modern::Perl::Prelude
 
+0.008  2026-03-22
+    - Add optional -always_true / always_true support via the true module
+    - Allow modules to omit a trailing 1; on Perl 5.30+ when always_true is enabled
+    - Support both flag-style and hash-style always_true imports
+    - Support explicit no Modern::Perl::Prelude -always_true / { always_true => 1 }
+    - Add true as a dependency and use true::VERSION in Makefile metadata
+    - Document always_true in POD and README
+    - Add coverage tests for always_true import and unimport behavior
+    - Preserve 0.007 work on hash-style imports and Test2::Tools::Spec conversion
+
 0.007  2026-03-22
     - Add documented hash-style import arguments via a single hash reference
     - Support hash-style keys: utf8, class, defer, corinna

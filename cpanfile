@@ -1,6 +1,7 @@
 requires 'Import::Into';
 requires 'Feature::Compat::Try';
 requires 'builtin::compat';
+requires 'true';
 
 on 'test' => sub {
     requires 'Test::More', '0.96';

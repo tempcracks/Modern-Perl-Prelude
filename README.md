@@ -42,6 +42,7 @@ Supported flags:
 - `-class`
 - `-defer`
 - `-corinna`
+- `-always_true`
 
 Examples:
 
@@ -52,6 +53,12 @@ use Modern::Perl::Prelude qw(
     -class
     -defer
 );
+
+use Modern::Perl::Prelude qw(
+    -class
+    -utf8
+    -always_true
+);
 ```
 ### Hash-style
 
@@ -59,8 +66,9 @@ Hash-style arguments are supported as a **single hash reference**:
 
 ```perl
 use Modern::Perl::Prelude {
-    utf8 => 1,
-    defer => 1,
+    utf8        => 1,
+    defer       => 1,
+    always_true => 1,
 };
 ```
 
@@ -70,9 +78,11 @@ Supported hash keys:
 * `class`
 * `defer`
 * `corinna`
+* `always_true`
 
 For compatibility-layer options (`class`, `defer`, `corinna`), a true scalar enables the option. A hash reference also enables it and is passed through to the underlying module's `import`.
 
+For `always_true`, use a boolean value.
 
 ### `-utf8` / `utf8`
 
@@ -137,13 +147,54 @@ class Person {
 }
 ```
 
-### Hash-style example:
+Hash-style example:
 
 ```perl
 use Modern::Perl::Prelude {
     corinna => {},
     utf8    => 1,
 };
+```
+
+### `-always_true` / `always_true`
+
+Enables automatic true return for the currently-compiling file, so a module can omit the trailing:
+
+```perl
+1;
+```
+
+Example module without `1;`:
+
+```perl
+use Modern::Perl::Prelude qw(
+    -class
+    -utf8
+    -always_true
+);
+
+class My::App::Person {
+    field $name :param;
+    field $age  :param = 0;
+
+    method greet {
+        return "Hello, I'm $name and I'm $age years old";
+    }
+}
+```
+
+Hash-style example:
+
+```perl
+use Modern::Perl::Prelude {
+    class       => 1,
+    utf8        => 1,
+    always_true => 1,
+};
+
+class My::App::Person {
+    field $name :param;
+}
 ```
 
 ### Option compatibility rules
@@ -225,6 +276,22 @@ my $p = Person->new(name => 'José');
 say $p->greet;
 ```
 
+With always_true for a module file:
+
+```perl
+use Modern::Perl::Prelude qw(
+    -class
+    -utf8
+    -always_true
+);
+
+class My::App::Person {
+    field $name :param;
+}
+
+# no trailing 1;
+```
+
 ## Lexical disabling
 
 You can disable native pragmata/features lexically again:
@@ -256,6 +323,18 @@ This applies to:
 * `Object::Pad`
 * `builtin::compat`
 
+`always_true` is different: it is file-scoped, and you can explicitly disable it for the current file with:
+
+```perl
+no Modern::Perl::Prelude '-always_true';
+```
+
+or:
+
+```perl
+no Modern::Perl::Prelude { always_true => 1 };
+```
+
 ## Design goals
 
 This module is intended as a small project prelude for codebases that want a more modern Perl style while keeping runtime compatibility with Perl 5.30+.
@@ -263,6 +342,8 @@ This module is intended as a small project prelude for codebases that want a mor
 It is implemented as a lexical wrapper using `Import::Into`, so pragmata and lexical features affect the caller's scope rather than the wrapper module itself.
 
 Optional compatibility layers are loaded lazily and only when explicitly requested.
+
+`always_true` is implemented via the CPAN module `true` and is file-scoped rather than lexically-scoped.
 
 ## Install
 
@@ -318,8 +399,8 @@ cover
 
 ## Authors
 
-- Sergey Kovalev <skov@cpan.org>
-- Kirill Dmitriev <zaika.k1007@gmail.com>
+* Sergey Kovalev <skov@cpan.org>
+* Kirill Dmitriev <zaika.k1007@gmail.com>
 
 ## License
 
@@ -331,6 +412,16 @@ This library is free software; you can redistribute it and/or modify it under th
 
 ```text
 Revision history for Modern::Perl::Prelude
+
+0.008  2026-03-22
+    - Add optional -always_true / always_true support via the true module
+    - Allow modules to omit a trailing 1; on Perl 5.30+ when always_true is enabled
+    - Support both flag-style and hash-style always_true imports
+    - Support explicit no Modern::Perl::Prelude -always_true / { always_true => 1 }
+    - Add true as a dependency and use true::VERSION in Makefile metadata
+    - Document always_true in POD and README
+    - Add coverage tests for always_true import and unimport behavior
+    - Preserve 0.007 work on hash-style imports and Test2::Tools::Spec conversion
 
 0.007  2026-03-22
     - Add documented hash-style import arguments via a single hash reference

@@ -71,6 +71,28 @@ PERL
 ok($ok_hash_no_utf8, 'hash-style no accepts known option')
     or diag $@;
 
+my $ok_always_true_flag = eval <<'PERL';
+    package Local::Prelude::Args::AlwaysTrueFlag;
+
+    use Modern::Perl::Prelude '-always_true';
+
+    1;
+PERL
+
+ok($ok_always_true_flag, 'flag-style always_true option compiles')
+    or diag $@;
+
+my $ok_always_true_hash = eval <<'PERL';
+    package Local::Prelude::Args::AlwaysTrueHash;
+
+    use Modern::Perl::Prelude { always_true => 1 };
+
+    1;
+PERL
+
+ok($ok_always_true_hash, 'hash-style always_true option compiles')
+    or diag $@;
+
 my $ok_bad_use = eval <<'PERL';
     package Local::Prelude::Args::BadUse;
 
