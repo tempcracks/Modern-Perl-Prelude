@@ -156,6 +156,7 @@ This applies to:
 * `Feature::Compat::Class`
 * `Feature::Compat::Defer`
 * `builtin::compat`
+* `Test2::Tools::Spec`
 
 ## Design goals
 

@@ -5,7 +5,8 @@ use strict;
 use warnings;
 
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
-our $VERSION = '0.005';
+our $VERSION = '0.006';
+
 
 use Import::Into ();
 use strict   ();
@@ -16,13 +17,13 @@ use utf8     ();
 use Feature::Compat::Try ();
 use builtin::compat      ();
 
-my @FEATURES = qw(
+use constant FEATURES => qw(
     say
     state
     fc
 );
 
-my @BUILTINS = qw(
+use constant BUILTINS => qw(
     blessed
     refaddr
     reftype
@@ -40,70 +41,157 @@ my %KNOWN_ARG = map { $_ => 1 } qw(
     -utf8
     -class
     -defer
+    -corinna
 );
 
 sub import {
     my ($class, @args) = @_;
-    my %arg    = _parse_args(@args);
     my $target = caller;
+    my $style = _detect_call_style(\@args);
+    my $config = _parse_by_style($style, \@args);
 
+    #base modules always included
     strict->import::into($target);
     warnings->import::into($target);
+    
+    my @features = $config->{features} ? @{$config->{features}} : FEATURES;
+    feature->import::into($target, @features);
+   
+	#TRY
+    Feature::Compat::Try->import::into($target); 
 
-    feature->import::into($target, @FEATURES);
-    Feature::Compat::Try->import::into($target);
-    builtin::compat->import::into($target, @BUILTINS);
+    #builtins
+    my @builtins = $config->{builtins} ? @{$config->{builtins}} : BUILTINS; 
+    builtin::compat->import::into($target, @builtins);
 
-    utf8->import::into($target) if $arg{'-utf8'};
+#UTF8
+    utf8->import::into($target) if $config->{utf8};
 
-    _import_optional_compat($target, 'Feature::Compat::Class')
-        if $arg{'-class'};
+    _import_optional_with_opts($target, 'Feature::Compat::Class', $config->{class}) 
+	if $config->{class};
 
-    _import_optional_compat($target, 'Feature::Compat::Defer')
-        if $arg{'-defer'};
+    _import_optional_with_opts($target, 'Feature::Compat::Defer', $config->{defer})
+	if $config->{defer};
+    _import_optional_with_opts($target, 'Object::Pad', $config->{corinna})
+    	if $config->{corinna};
 
-    return;
+	undef $config;
+	undef @features;
+	undef @builtins;
+	undef $class;
+	undef @args;
+	undef $target;
+
+    	return;
 }
 
 sub unimport {
     my ($class, @args) = @_;
-    _parse_args(@args);
+    my $style = _detect_call_style(\@args);
+    my $config = _parse_by_style($style, \@args);
 
     my $target = caller;
 
     strict->unimport::out_of($target);
     warnings->unimport::out_of($target);
-
-    feature->unimport::out_of($target, @FEATURES);
+    
+    my @features = $config->{features} ? @{$config->{features}} : FEATURES;
+    feature->unimport::out_of($target, @features);
     utf8->unimport::out_of($target);
 
+    undef $config;
+    undef @features;
+    undef $class;
+    undef @args;
+    undef $target;
+
+
     return;
 }
 
-sub _parse_args {
-    my @args = @_;
-    my %arg;
+sub _detect_call_style {
+    my ($args) = @_;
 
-    for my $arg (@args) {
-        die __PACKAGE__ . qq{: unknown import option "$arg"\n}
-            unless $KNOWN_ARG{$arg};
-
-        $arg{$arg} = 1;
+    return 'empty' unless @$args;
+    #style 1 (-utf8 -class)
+    if (grep { /^-/ } @$args){
+    	return 'flags';
     }
 
-    return %arg;
+    #style 2 hash with config
+
+    #if(@$args == 1 && ref $args->[0] eq 'HASH') {
+    if (ref $args->[0] eq 'HASH') {
+    	return 'hash';
+    }
+
+    # style 3 a list of features ( qw(switch say state))
+    if (grep { !ref && !/^-/ } @$args){
+    	return 'features';
+	}
+	undef $args;
+    #style 4 mixed for callback
+    return 'mixed'; 
 }
 
-sub _import_optional_compat {
-    my ($target, $module) = @_;
+sub _parse_by_style {
+	my ($style, $args)  = @_;
+	my %config = ();
+	if ($style eq 'hash'){
+		%config = %{$args->[0]};
+	}
+	elsif ($style eq 'flags') {
+		
+		foreach my $arg (@$args) {
+			if ($arg =~ /^-(\w+)/) {
+				die __PACKAGE__ . qq{: unknown import option "$arg"\n}
+					unless $KNOWN_ARG{$arg};
+				$arg =~ s{-}{}g; 
+				$config{$arg} = 1;
+			}
+		}
 
-    (my $file = "$module.pm") =~ s{::}{/}g;
-    require $file;
-
-    $module->import::into($target);
-
-    return;
+	}
+	elsif ($style eq 'features') {
+		$config{features} = $args;
+	}
+	elsif ( $style eq 'mixed'){
+		$config{features} = [];
+		foreach my $arg (@$args){
+			if ($arg =~ /^-(\w)/){
+				$arg =~ s{-}{}g;
+				$config{$arg} = 1;
+			}
+			else {
+				push @{$config{features}}, $arg;
+			}
+		}
+	}
+	undef $style;
+	undef $args;
+	
+	return \%config;
 }
+
+sub _import_optional_with_opts {
+	my ($target, $module, $opts) = @_;
+
+	#eval "require $module" or seturn;
+	(my $file = "$module.pm") =~ s{::}{/}g;
+	require $file;
+
+	if(ref $opts eq 'HASH'){
+		$module->import::into($target, %$opts);
+	}
+	elsif ($opts) {
+		$module->import::into($target);
+	}
+	undef $target;
+	undef $module;
+	undef $opts;
+	return;
+}
+
 
 1;
 
