@@ -197,7 +197,7 @@ class My::App::Person {
 }
 ```
 
-### Option compatibility rules
+## Option compatibility rules
 
 Any non-conflicting combination is allowed.
 
@@ -276,7 +276,7 @@ my $p = Person->new(name => 'José');
 say $p->greet;
 ```
 
-With always_true for a module file:
+With `always_true` for a module file:
 
 ```perl
 use Modern::Perl::Prelude qw(
