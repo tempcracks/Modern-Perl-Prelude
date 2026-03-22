@@ -26,6 +26,7 @@ WriteMakefile(
         'Test::More'             => 0,
         'Feature::Compat::Class' => 0,
         'Feature::Compat::Defer' => 0,
+        'Object::Pad'            => 0,
     },
 
     META_MERGE => {

@@ -30,14 +30,14 @@ describe "Modern::Perl::Prelude imports" => sub {
 				}
 				my $trimmed = trim(" hello \n");
 				my $folded = fc("Straße");
-				
+
 				my $obj = bless {}, 'Local::Prelude::Smoke::Object';
 
 				my $caught = '';
 				try {
 					die "boom\n";
 				}
-				catch ($e){
+				catch ($e) {
 					$caught = $e;
 				}
 
@@ -71,13 +71,15 @@ describe "Modern::Perl::Prelude imports" => sub {
 				return 1;
 			}
 
-
 			run();
 PERL
 
 		ok($ok, 'module imports compile and run')
 			or diag $@;
-		$RESULT = \%Local::Prelude::Smoke::RESULT;
+		{
+			no warnings 'once';
+			$RESULT = \%Local::Prelude::Smoke::RESULT;
+		}
 	};
 
 	it "should import say" => sub {
@@ -91,48 +93,48 @@ PERL
 	it "should import fc" => sub {
 		is($RESULT->{folded}, 'strasse', 'fc imported');
     };
-    
+
     it "should import blessed" => sub {
         is($RESULT->{blessed}, 'Local::Prelude::Smoke::Object', 'blessed imported');
     };
-    
+
     it "should import try/catch" => sub {
         ok($RESULT->{caught_like}, 'try/catch imported');
     };
-    
+
     it "should import true" => sub {
         is($RESULT->{true_value}, 1, 'true imported');
     };
-    
+
     it "should import false" => sub {
         is($RESULT->{false_value}, 0, 'false imported');
     };
-    
+
     it "should import ceil" => sub {
         is($RESULT->{ceil_value}, 2, 'ceil imported');
     };
-    
+
     it "should import floor" => sub {
         is($RESULT->{floor_value}, 1, 'floor imported');
     };
-    
+
     it "should import refaddr" => sub {
         ok($RESULT->{refaddr_defined}, 'refaddr imported');
     };
-    
+
     it "should import reftype" => sub {
         is($RESULT->{reftype}, 'HASH', 'reftype imported');
     };
-    
+
     it "should have state feature enabled" => sub {
         is($RESULT->{state_counter}, 1, 'state feature enabled');
     };
-    
+
     it "should import is_weak and weaken" => sub {
         is($RESULT->{weak_before}, 0, 'is_weak before weaken');
         is($RESULT->{weak_after}, 1, 'weaken/is_weak imported');
     };
-    
+
     it "should import unweaken" => sub {
         is($RESULT->{weak_restored}, 0, 'unweaken imported');
     };

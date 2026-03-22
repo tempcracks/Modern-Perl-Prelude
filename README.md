@@ -72,17 +72,35 @@ use Modern::Perl::Prelude '-defer';
 }
 ```
 
+### `-corinna`
+
+Enables direct `Object::Pad` / Corinna-like syntax on demand:
+
+```perl
+use Modern::Perl::Prelude '-corinna';
+
+class Person {
+    field $name :param;
+    field $age  :param = 0;
+
+    method greet {
+        return "Hello, I'm $name and I'm $age years old";
+    }
+}
+```
+
 ## Combined options
 
-Any combination is allowed:
+Any non-conflicting combination is allowed:
 
 ```perl
 use Modern::Perl::Prelude qw(
     -utf8
-    -class
     -defer
 );
 ```
+
+`-class` and `-corinna` are intentionally mutually exclusive.
 
 ## Usage
 
@@ -104,7 +122,7 @@ catch ($e) {
 }
 ```
 
-With optional syntax extensions:
+With `Feature::Compat::Class`:
 
 ```perl
 use Modern::Perl::Prelude qw(
@@ -125,6 +143,27 @@ class Example {
     my $obj = Example->new(value => 42);
     say $obj->value;
 }
+```
+
+With `Object::Pad`:
+
+```perl
+use Modern::Perl::Prelude qw(
+    -corinna
+    -utf8
+);
+
+class Person {
+    field $name :param;
+    field $age  :param = 0;
+
+    method greet {
+        return "Hello, I'm $name and I'm $age years old";
+    }
+}
+
+my $p = Person->new(name => 'José');
+say $p->greet;
 ```
 
 ## Lexical disabling
@@ -155,8 +194,8 @@ This applies to:
 * `Feature::Compat::Try`
 * `Feature::Compat::Class`
 * `Feature::Compat::Defer`
+* `Object::Pad`
 * `builtin::compat`
-* `Test2::Tools::Spec`
 
 ## Design goals
 
@@ -221,3 +260,49 @@ cover
 ## License
 
 This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+
+---
+
+## `Changes`
+
+```text
+Revision history for Modern::Perl::Prelude
+
+0.006  2026-03-22
+    - Add optional -corinna import via Object::Pad
+    - Make -class and -corinna mutually exclusive
+    - Add t/05-corinna.t with Object::Pad coverage
+    - Add Object::Pad to test dependencies
+    - Refresh README to document -corinna correctly
+    - Add t/05-corinna.t to MANIFEST and author EOL checks
+
+0.005  2026-03-17
+    - Add optional -class import via Feature::Compat::Class
+    - Add optional -defer import via Feature::Compat::Defer
+    - Keep new compat layers lazy-loaded so existing default import behavior stays unchanged
+    - Add t/04-class-defer.t to cover optional compat imports
+    - Update packaging metadata and author EOL coverage for new test file
+    - Add author and git information
+
+0.004  2026-03-17
+    - Add argument handling tests in t/03-args.t
+    - Reach 100% statement, branch, subroutine and total coverage
+    - Fix UTF-8 option tests to match real lexical behavior
+    - Silence once-only package variable warning in args test
+    - Finalize test suite for use/no and option validation paths
+
+0.003  2026-03-17
+    - Make unimport honest: only undo native pragmata/features
+    - Fix no.t to test only reliably reversible native features
+    - Clarify POD about import-only compat layers
+
+0.002  2026-03-17
+    - Add unimport support: no Modern::Perl::Prelude
+    - Add author tests
+    - Add GitHub Actions CI matrix for Perl 5.30 .. 5.42
+    - Add cpanfile
+    - Refresh distribution skeleton
+
+0.001  2026-03-17
+    - First version
+```

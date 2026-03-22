@@ -69,4 +69,22 @@ like(
     'unknown option in no gives expected error',
 );
 
+my $ok_conflict = eval <<'PERL';
+    package Local::Prelude::Args::Conflict;
+
+    use Modern::Perl::Prelude qw(
+        -class
+        -corinna
+    );
+
+    1;
+PERL
+
+ok(!$ok_conflict, 'conflicting -class and -corinna options die');
+like(
+    $@,
+    qr/^Modern::Perl::Prelude: options "-class" and "-corinna" are mutually exclusive/,
+    'conflicting options give expected error',
+);
+
 done_testing;

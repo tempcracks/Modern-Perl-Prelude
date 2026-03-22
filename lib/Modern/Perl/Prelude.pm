@@ -7,7 +7,6 @@ use warnings;
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
 our $VERSION = '0.006';
 
-
 use Import::Into ();
 use strict   ();
 use warnings ();
@@ -17,13 +16,13 @@ use utf8     ();
 use Feature::Compat::Try ();
 use builtin::compat      ();
 
-use constant FEATURES => qw(
+my @FEATURES = qw(
     say
     state
     fc
 );
 
-use constant BUILTINS => qw(
+my @BUILTINS = qw(
     blessed
     refaddr
     reftype
@@ -46,152 +45,74 @@ my %KNOWN_ARG = map { $_ => 1 } qw(
 
 sub import {
     my ($class, @args) = @_;
+    my %arg    = _parse_args(@args);
     my $target = caller;
-    my $style = _detect_call_style(\@args);
-    my $config = _parse_by_style($style, \@args);
 
-    #base modules always included
+    die __PACKAGE__ . qq{: options "-class" and "-corinna" are mutually exclusive\n}
+        if $arg{'-class'} && $arg{'-corinna'};
+
     strict->import::into($target);
     warnings->import::into($target);
-    
-    my @features = $config->{features} ? @{$config->{features}} : FEATURES;
-    feature->import::into($target, @features);
-   
-	#TRY
-    Feature::Compat::Try->import::into($target); 
 
-    #builtins
-    my @builtins = $config->{builtins} ? @{$config->{builtins}} : BUILTINS; 
-    builtin::compat->import::into($target, @builtins);
+    feature->import::into($target, @FEATURES);
+    Feature::Compat::Try->import::into($target);
+    builtin::compat->import::into($target, @BUILTINS);
 
-#UTF8
-    utf8->import::into($target) if $config->{utf8};
+    utf8->import::into($target) if $arg{'-utf8'};
 
-    _import_optional_with_opts($target, 'Feature::Compat::Class', $config->{class}) 
-	if $config->{class};
+    _import_optional_module($target, 'Feature::Compat::Class')
+        if $arg{'-class'};
 
-    _import_optional_with_opts($target, 'Feature::Compat::Defer', $config->{defer})
-	if $config->{defer};
-    _import_optional_with_opts($target, 'Object::Pad', $config->{corinna})
-    	if $config->{corinna};
+    _import_optional_module($target, 'Feature::Compat::Defer')
+        if $arg{'-defer'};
 
-	undef $config;
-	undef @features;
-	undef @builtins;
-	undef $class;
-	undef @args;
-	undef $target;
-
-    	return;
-}
-
-sub unimport {
-    my ($class, @args) = @_;
-    my $style = _detect_call_style(\@args);
-    my $config = _parse_by_style($style, \@args);
-
-    my $target = caller;
-
-    strict->unimport::out_of($target);
-    warnings->unimport::out_of($target);
-    
-    my @features = $config->{features} ? @{$config->{features}} : FEATURES;
-    feature->unimport::out_of($target, @features);
-    utf8->unimport::out_of($target);
-
-    undef $config;
-    undef @features;
-    undef $class;
-    undef @args;
-    undef $target;
-
+    _import_optional_module($target, 'Object::Pad')
+        if $arg{'-corinna'};
 
     return;
 }
 
-sub _detect_call_style {
-    my ($args) = @_;
+sub unimport {
+    my ($class, @args) = @_;
+    my %arg    = _parse_args(@args);
+    my $target = caller;
 
-    return 'empty' unless @$args;
-    #style 1 (-utf8 -class)
-    if (grep { /^-/ } @$args){
-    	return 'flags';
+    die __PACKAGE__ . qq{: options "-class" and "-corinna" are mutually exclusive\n}
+        if $arg{'-class'} && $arg{'-corinna'};
+
+    strict->unimport::out_of($target);
+    warnings->unimport::out_of($target);
+
+    feature->unimport::out_of($target, @FEATURES);
+    utf8->unimport::out_of($target);
+
+    return;
+}
+
+sub _parse_args {
+    my @args = @_;
+    my %arg;
+
+    for my $arg (@args) {
+        die __PACKAGE__ . qq{: unknown import option "$arg"\n}
+            unless $KNOWN_ARG{$arg};
+
+        $arg{$arg} = 1;
     }
 
-    #style 2 hash with config
-
-    #if(@$args == 1 && ref $args->[0] eq 'HASH') {
-    if (ref $args->[0] eq 'HASH') {
-    	return 'hash';
-    }
-
-    # style 3 a list of features ( qw(switch say state))
-    if (grep { !ref && !/^-/ } @$args){
-    	return 'features';
-	}
-	undef $args;
-    #style 4 mixed for callback
-    return 'mixed'; 
+    return %arg;
 }
 
-sub _parse_by_style {
-	my ($style, $args)  = @_;
-	my %config = ();
-	if ($style eq 'hash'){
-		%config = %{$args->[0]};
-	}
-	elsif ($style eq 'flags') {
-		
-		foreach my $arg (@$args) {
-			if ($arg =~ /^-(\w+)/) {
-				die __PACKAGE__ . qq{: unknown import option "$arg"\n}
-					unless $KNOWN_ARG{$arg};
-				$arg =~ s{-}{}g; 
-				$config{$arg} = 1;
-			}
-		}
+sub _import_optional_module {
+    my ($target, $module) = @_;
 
-	}
-	elsif ($style eq 'features') {
-		$config{features} = $args;
-	}
-	elsif ( $style eq 'mixed'){
-		$config{features} = [];
-		foreach my $arg (@$args){
-			if ($arg =~ /^-(\w)/){
-				$arg =~ s{-}{}g;
-				$config{$arg} = 1;
-			}
-			else {
-				push @{$config{features}}, $arg;
-			}
-		}
-	}
-	undef $style;
-	undef $args;
-	
-	return \%config;
+    (my $file = "$module.pm") =~ s{::}{/}g;
+    require $file;
+
+    $module->import::into($target);
+
+    return;
 }
-
-sub _import_optional_with_opts {
-	my ($target, $module, $opts) = @_;
-
-	#eval "require $module" or seturn;
-	(my $file = "$module.pm") =~ s{::}{/}g;
-	require $file;
-
-	if(ref $opts eq 'HASH'){
-		$module->import::into($target, %$opts);
-	}
-	elsif ($opts) {
-		$module->import::into($target);
-	}
-	undef $target;
-	undef $module;
-	undef $opts;
-	return;
-}
-
 
 1;
 
@@ -221,7 +142,7 @@ Optional UTF-8 source mode:
 
     use Modern::Perl::Prelude '-utf8';
 
-Optional class syntax:
+Optional class syntax via Feature::Compat::Class:
 
     use Modern::Perl::Prelude '-class';
 
@@ -229,11 +150,14 @@ Optional defer syntax:
 
     use Modern::Perl::Prelude '-defer';
 
-Any combination is allowed:
+Optional Object::Pad / Corinna-like syntax:
+
+    use Modern::Perl::Prelude '-corinna';
+
+Non-conflicting combinations are allowed:
 
     use Modern::Perl::Prelude qw(
         -utf8
-        -class
         -defer
     );
 
@@ -278,9 +202,21 @@ Also enables source-level UTF-8, like:
 
 Loads and imports C<Feature::Compat::Class> into the caller scope.
 
+This is the forward-compatible class syntax option.
+
 =head2 -defer
 
 Loads and imports C<Feature::Compat::Defer> into the caller scope.
+
+=head2 -corinna
+
+Loads and imports C<Object::Pad> into the caller scope.
+
+This is intended for projects that explicitly want Object::Pad / Corinna-like
+class syntax. It is distinct from C<-class> and may differ semantically from
+C<Feature::Compat::Class> and future core C<class> behavior.
+
+C<-class> and C<-corinna> are mutually exclusive.
 
 =head1 DEFAULT IMPORTS
 
@@ -309,9 +245,11 @@ When requested explicitly, this module can also make the following available:
 
 =over 4
 
-=item * C<-class> enables C<class>, C<method>, C<field>, C<ADJUST>
+=item * C<-class> enables C<class>, C<method>, C<field>, C<ADJUST> via C<Feature::Compat::Class>
 
 =item * C<-defer> enables C<defer>
+
+=item * C<-corinna> enables class syntax via C<Object::Pad>
 
 =back
 
@@ -328,7 +266,7 @@ managed by this module:
     utf8
 
 Compatibility layers such as C<Feature::Compat::Try>,
-C<Feature::Compat::Class>, C<Feature::Compat::Defer>, and
+C<Feature::Compat::Class>, C<Feature::Compat::Defer>, C<Object::Pad>, and
 C<builtin::compat> are treated as import-only for cross-version use on
 Perl 5.30+ and are not guaranteed to be symmetrically undone by
 C<no Modern::Perl::Prelude>.
@@ -340,7 +278,7 @@ that pragmata and lexical functions affect the caller's scope, not the scope
 of this wrapper module itself.
 
 Optional compatibility layers are loaded lazily, only when explicitly
-requested by import options.
+requested.
 
 =head1 AUTHOR
 

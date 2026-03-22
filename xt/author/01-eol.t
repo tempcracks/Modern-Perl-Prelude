@@ -17,6 +17,7 @@ my @files = qw(
     t/02-no.t
     t/03-args.t
     t/04-class-defer.t
+    t/05-corinna.t
     xt/author/00-pod.t
     xt/author/01-eol.t
     xt/author/02-pod-coverage.t

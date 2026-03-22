@@ -6,6 +6,7 @@ on 'test' => sub {
     requires 'Test::More', '0.96';
     requires 'Feature::Compat::Class';
     requires 'Feature::Compat::Defer';
+    requires 'Object::Pad';
 };
 
 on 'develop' => sub {

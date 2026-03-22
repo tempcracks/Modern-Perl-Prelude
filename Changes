@@ -1,6 +1,11 @@
 Revision history for Modern::Perl::Prelude
 
 0.005  2026-03-17
+    - Add Corinna (Object::Pad) support
+    - Add hash import args support
+    - Test rewrited on Test2::Tools::Spec
+
+0.005  2026-03-17
     - Add optional -class import via Feature::Compat::Class
     - Add optional -defer import via Feature::Compat::Defer
     - Keep new compat layers lazy-loaded so existing default import behavior stays unchanged
