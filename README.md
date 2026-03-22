@@ -34,7 +34,47 @@ Default imported functions/features:
 
 ## Optional imports
 
-### `-utf8`
+### Flag-style
+
+Supported flags:
+
+- `-utf8`
+- `-class`
+- `-defer`
+- `-corinna`
+
+Examples:
+
+```perl
+use Modern::Perl::Prelude '-utf8';
+
+use Modern::Perl::Prelude qw(
+    -class
+    -defer
+);
+```
+### Hash-style
+
+Hash-style arguments are supported as a **single hash reference**:
+
+```perl
+use Modern::Perl::Prelude {
+    utf8 => 1,
+    defer => 1,
+};
+```
+
+Supported hash keys:
+
+* `utf8`
+* `class`
+* `defer`
+* `corinna`
+
+For compatibility-layer options (`class`, `defer`, `corinna`), a true scalar enables the option. A hash reference also enables it and is passed through to the underlying module's `import`.
+
+
+### `-utf8` / `utf8`
 
 Enables source-level UTF-8, like:
 
@@ -42,7 +82,15 @@ Enables source-level UTF-8, like:
 use Modern::Perl::Prelude '-utf8';
 ```
 
-### `-class`
+or:
+
+```perl
+use Modern::Perl::Prelude {
+    utf8 => 1,
+};
+```
+
+### `-class` / `class`
 
 Enables `Feature::Compat::Class` on demand:
 
@@ -59,7 +107,7 @@ class Point {
 }
 ```
 
-### `-defer`
+### `-defer` / `defer`
 
 Enables `Feature::Compat::Defer` on demand:
 
@@ -72,7 +120,7 @@ use Modern::Perl::Prelude '-defer';
 }
 ```
 
-### `-corinna`
+### `-corinna` / `corinna`
 
 Enables direct `Object::Pad` / Corinna-like syntax on demand:
 
@@ -89,18 +137,29 @@ class Person {
 }
 ```
 
-## Combined options
-
-Any non-conflicting combination is allowed:
+### Hash-style example:
 
 ```perl
-use Modern::Perl::Prelude qw(
-    -utf8
-    -defer
-);
+use Modern::Perl::Prelude {
+    corinna => {},
+    utf8    => 1,
+};
 ```
 
+### Option compatibility rules
+
+Any non-conflicting combination is allowed.
+
 `-class` and `-corinna` are intentionally mutually exclusive.
+
+The same rule applies to hash-style arguments:
+
+```perl
+use Modern::Perl::Prelude {
+    class   => 1,
+    corinna => 1,
+}; # dies
+```
 
 ## Usage
 
@@ -148,10 +207,10 @@ class Example {
 With `Object::Pad`:
 
 ```perl
-use Modern::Perl::Prelude qw(
-    -corinna
-    -utf8
-);
+use Modern::Perl::Prelude {
+    corinna => {},
+    utf8    => 1,
+};
 
 class Person {
     field $name :param;
@@ -257,6 +316,11 @@ cover
 * POD coverage: passing
 * Devel::Cover coverage: 100%
 
+## Authors
+
+- Sergey Kovalev <skov@cpan.org>
+- Kirill Dmitriev <zaika.k1007@gmail.com>
+
 ## License
 
 This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
@@ -267,6 +331,20 @@ This library is free software; you can redistribute it and/or modify it under th
 
 ```text
 Revision history for Modern::Perl::Prelude
+
+0.007  2026-03-22
+    - Add documented hash-style import arguments via a single hash reference
+    - Support hash-style keys: utf8, class, defer, corinna
+    - Make -class and -corinna mutually exclusive for both flag-style and hash-style imports
+    - Add tests for hash-style utf8 import and hash-style corinna import
+    - Add tests for unknown hash-style keys and mixed flag/hash argument misuse
+    - Update README and POD to document hash-style imports and class/corinna exclusivity
+    - Keep Object::Pad as the test dependency for corinna support
+    - Convert t/04-class-defer.t to Test2::Tools::Spec
+    - Convert t/05-corinna.t to Test2::Tools::Spec
+    - Replace Test2::Bundle::Extended test dependency with Test2::V0 and Test2::Tools::Spec
+    - Fix CI failures on Perl 5.30 .. 5.38 caused by missing Test2 bundle
+    - Add co-author metadata and documentation
 
 0.006  2026-03-22
     - Add optional -corinna import via Object::Pad

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 # ABSTRACT: Project prelude for modern Perl style on Perl 5.30+
-our $VERSION = '0.006';
+our $VERSION = '0.007';
 
 use Import::Into ();
 use strict   ();
@@ -36,49 +36,56 @@ my @BUILTINS = qw(
     is_weak
 );
 
-my %KNOWN_ARG = map { $_ => 1 } qw(
+my %KNOWN_FLAG = map { $_ => 1 } qw(
     -utf8
     -class
     -defer
     -corinna
 );
 
+my %KNOWN_HASH_KEY = map { $_ => 1 } qw(
+    utf8
+    class
+    defer
+    corinna
+);
+
 sub import {
     my ($class, @args) = @_;
-    my %arg    = _parse_args(@args);
     my $target = caller;
+    my $config = _parse_args(@args);
 
-    die __PACKAGE__ . qq{: options "-class" and "-corinna" are mutually exclusive\n}
-        if $arg{'-class'} && $arg{'-corinna'};
+    _validate_config($config);
 
     strict->import::into($target);
     warnings->import::into($target);
 
     feature->import::into($target, @FEATURES);
+
     Feature::Compat::Try->import::into($target);
+
     builtin::compat->import::into($target, @BUILTINS);
 
-    utf8->import::into($target) if $arg{'-utf8'};
+    utf8->import::into($target) if $config->{utf8};
 
-    _import_optional_module($target, 'Feature::Compat::Class')
-        if $arg{'-class'};
+    _import_optional_module($target, 'Feature::Compat::Class', $config->{class})
+        if $config->{class};
 
-    _import_optional_module($target, 'Feature::Compat::Defer')
-        if $arg{'-defer'};
+    _import_optional_module($target, 'Feature::Compat::Defer', $config->{defer})
+        if $config->{defer};
 
-    _import_optional_module($target, 'Object::Pad')
-        if $arg{'-corinna'};
+    _import_optional_module($target, 'Object::Pad', $config->{corinna})
+        if $config->{corinna};
 
     return;
 }
 
 sub unimport {
     my ($class, @args) = @_;
-    my %arg    = _parse_args(@args);
     my $target = caller;
+    my $config = _parse_args(@args);
 
-    die __PACKAGE__ . qq{: options "-class" and "-corinna" are mutually exclusive\n}
-        if $arg{'-class'} && $arg{'-corinna'};
+    _validate_config($config);
 
     strict->unimport::out_of($target);
     warnings->unimport::out_of($target);
@@ -90,26 +97,68 @@ sub unimport {
 }
 
 sub _parse_args {
-    my @args = @_;
-    my %arg;
+    my (@args) = @_;
 
-    for my $arg (@args) {
-        die __PACKAGE__ . qq{: unknown import option "$arg"\n}
-            unless $KNOWN_ARG{$arg};
+    return {} unless @args;
 
-        $arg{$arg} = 1;
+    if (@args == 1 && ref($args[0]) eq 'HASH') {
+        return _parse_hash_args($args[0]);
     }
 
-    return %arg;
+    return _parse_flag_args(@args);
+}
+
+sub _parse_flag_args {
+    my (@args) = @_;
+    my %config;
+
+    for my $arg (@args) {
+        die __PACKAGE__ . qq{: hash-style arguments must be passed as a single hash reference\n}
+            if ref $arg;
+
+        die __PACKAGE__ . qq{: unknown import option "$arg"\n}
+            unless $KNOWN_FLAG{$arg};
+
+        (my $key = $arg) =~ s/^-//;
+        $config{$key} = 1;
+    }
+
+    return \%config;
+}
+
+sub _parse_hash_args {
+    my ($raw) = @_;
+    my %config = %{$raw};
+
+    for my $key (keys %config) {
+        die __PACKAGE__ . qq{: unknown import key "$key"\n}
+            unless $KNOWN_HASH_KEY{$key};
+    }
+
+    return \%config;
+}
+
+sub _validate_config {
+    my ($config) = @_;
+
+    die __PACKAGE__ . qq{: options "-class" and "-corinna" are mutually exclusive\n}
+        if $config->{class} && $config->{corinna};
+
+    return;
 }
 
 sub _import_optional_module {
-    my ($target, $module) = @_;
+    my ($target, $module, $opts) = @_;
 
     (my $file = "$module.pm") =~ s{::}{/}g;
     require $file;
 
-    $module->import::into($target);
+    if (ref($opts) eq 'HASH') {
+        $module->import::into($target, %{$opts});
+    }
+    else {
+        $module->import::into($target);
+    }
 
     return;
 }
@@ -138,32 +187,25 @@ Modern::Perl::Prelude - Project prelude for modern Perl style on Perl 5.30+
         warn $e;
     }
 
-Optional UTF-8 source mode:
+Flag-style optional imports:
 
     use Modern::Perl::Prelude '-utf8';
-
-Optional class syntax via Feature::Compat::Class:
-
     use Modern::Perl::Prelude '-class';
-
-Optional defer syntax:
-
     use Modern::Perl::Prelude '-defer';
-
-Optional Object::Pad / Corinna-like syntax:
-
     use Modern::Perl::Prelude '-corinna';
 
-Non-conflicting combinations are allowed:
+Hash-style optional imports:
 
-    use Modern::Perl::Prelude qw(
-        -utf8
-        -defer
-    );
+    use Modern::Perl::Prelude {
+        utf8 => 1,
+        defer => 1,
+    };
 
 Disable native pragmata/features lexically again:
 
     no Modern::Perl::Prelude;
+    no Modern::Perl::Prelude '-utf8';
+    no Modern::Perl::Prelude { utf8 => 1 };
 
 =head1 DESCRIPTION
 
@@ -190,34 +232,6 @@ It enables:
 Additional compatibility layers may be requested explicitly via import
 options.
 
-=head1 IMPORT OPTIONS
-
-=head2 -utf8
-
-Also enables source-level UTF-8, like:
-
-    use utf8;
-
-=head2 -class
-
-Loads and imports C<Feature::Compat::Class> into the caller scope.
-
-This is the forward-compatible class syntax option.
-
-=head2 -defer
-
-Loads and imports C<Feature::Compat::Defer> into the caller scope.
-
-=head2 -corinna
-
-Loads and imports C<Object::Pad> into the caller scope.
-
-This is intended for projects that explicitly want Object::Pad / Corinna-like
-class syntax. It is distinct from C<-class> and may differ semantically from
-C<Feature::Compat::Class> and future core C<class> behavior.
-
-C<-class> and C<-corinna> are mutually exclusive.
-
 =head1 DEFAULT IMPORTS
 
 This module always makes the following available in the caller's lexical
@@ -239,17 +253,89 @@ scope:
     unweaken
     is_weak
 
+=head1 IMPORT OPTIONS
+
+=head2 Flag-style
+
+Supported flags:
+
+    -utf8
+    -class
+    -defer
+    -corinna
+
+Examples:
+
+    use Modern::Perl::Prelude '-utf8';
+
+    use Modern::Perl::Prelude qw(
+        -class
+        -defer
+    );
+
+=head2 Hash-style
+
+Hash-style arguments must be passed as a single hash reference:
+
+    use Modern::Perl::Prelude {
+        utf8 => 1,
+        defer => 1,
+    };
+
+Supported hash keys:
+
+=over 4
+
+=item * C<utf8>
+
+=item * C<class>
+
+=item * C<defer>
+
+=item * C<corinna>
+
+=back
+
+For compatibility-layer options (C<class>, C<defer>, C<corinna>), a true
+scalar enables the feature. A hash reference also enables it and is passed
+through to the underlying module's C<import>.
+
+=head2 -utf8 / utf8
+
+Also enables source-level UTF-8, like:
+
+    use utf8;
+
+=head2 -class / class
+
+Loads and imports C<Feature::Compat::Class> into the caller scope.
+
+This is the forward-compatible class syntax option.
+
+=head2 -defer / defer
+
+Loads and imports C<Feature::Compat::Defer> into the caller scope.
+
+=head2 -corinna / corinna
+
+Loads and imports C<Object::Pad> into the caller scope.
+
+This is intended for projects that explicitly want Object::Pad / Corinna-like
+class syntax.
+
+C<-class> and C<-corinna> are mutually exclusive.
+
 =head1 OPTIONAL IMPORTS
 
 When requested explicitly, this module can also make the following available:
 
 =over 4
 
-=item * C<-class> enables C<class>, C<method>, C<field>, C<ADJUST> via C<Feature::Compat::Class>
+=item * C<-class> / C<class> enables C<class>, C<method>, C<field>, C<ADJUST> via C<Feature::Compat::Class>
 
-=item * C<-defer> enables C<defer>
+=item * C<-defer> / C<defer> enables C<defer>
 
-=item * C<-corinna> enables class syntax via C<Object::Pad>
+=item * C<-corinna> / C<corinna> enables class syntax via C<Object::Pad>
 
 =back
 
@@ -282,7 +368,11 @@ requested.
 
 =head1 AUTHOR
 
-Sergey Kovalev E<lt>skov@cpan.orgE<gt>
+Sergey Kovalev E<lt>skov@cpan.orgE<gt>,
+
+=head1 CO-AUTHOR
+
+Kirill Dmitriev E<lt>zaika.k1007@gmail.comE<gt>
 
 =head1 LICENSE
 

@@ -38,6 +38,39 @@ PERL
 ok($ok_no_utf8, 'no Modern::Perl::Prelude -utf8 accepts known option')
     or diag $@;
 
+my $ok_hash_utf8 = eval <<'PERL';
+    package Local::Prelude::Args::HashUtf8;
+
+    use Modern::Perl::Prelude { utf8 => 1 };
+
+    our $OK;
+
+    my $ёж = "ёж";
+    $OK = ($ёж eq "ёж") ? 1 : 0;
+
+    1;
+PERL
+
+ok($ok_hash_utf8, 'hash-style utf8 option compiles')
+    or diag $@;
+
+{
+    no warnings 'once';
+    ok($Local::Prelude::Args::HashUtf8::OK, 'hash-style utf8 enables utf8 source semantics');
+}
+
+my $ok_hash_no_utf8 = eval <<'PERL';
+    package Local::Prelude::Args::HashNoUtf8;
+
+    use Modern::Perl::Prelude { utf8 => 1 };
+    no Modern::Perl::Prelude { utf8 => 1 };
+
+    1;
+PERL
+
+ok($ok_hash_no_utf8, 'hash-style no accepts known option')
+    or diag $@;
+
 my $ok_bad_use = eval <<'PERL';
     package Local::Prelude::Args::BadUse;
 
@@ -69,8 +102,41 @@ like(
     'unknown option in no gives expected error',
 );
 
-my $ok_conflict = eval <<'PERL';
-    package Local::Prelude::Args::Conflict;
+my $ok_bad_hash_key = eval <<'PERL';
+    package Local::Prelude::Args::BadHashKey;
+
+    use Modern::Perl::Prelude { bogus => 1 };
+
+    1;
+PERL
+
+ok(!$ok_bad_hash_key, 'unknown hash-style key dies');
+like(
+    $@,
+    qr/^Modern::Perl::Prelude: unknown import key "bogus"/,
+    'unknown hash-style key gives expected error',
+);
+
+my $ok_mixed = eval <<'PERL';
+    package Local::Prelude::Args::Mixed;
+
+    use Modern::Perl::Prelude(
+        '-utf8',
+        {},
+    );
+
+    1;
+PERL
+
+ok(!$ok_mixed, 'mixed flag-style and hash-style args die');
+like(
+    $@,
+    qr/^Modern::Perl::Prelude: hash-style arguments must be passed as a single hash reference/,
+    'mixed args give expected error',
+);
+
+my $ok_conflict_flags = eval <<'PERL';
+    package Local::Prelude::Args::ConflictFlags;
 
     use Modern::Perl::Prelude qw(
         -class
@@ -80,11 +146,29 @@ my $ok_conflict = eval <<'PERL';
     1;
 PERL
 
-ok(!$ok_conflict, 'conflicting -class and -corinna options die');
+ok(!$ok_conflict_flags, 'conflicting -class and -corinna flags die');
 like(
     $@,
     qr/^Modern::Perl::Prelude: options "-class" and "-corinna" are mutually exclusive/,
-    'conflicting options give expected error',
+    'flag conflict gives expected error',
+);
+
+my $ok_conflict_hash = eval <<'PERL';
+    package Local::Prelude::Args::ConflictHash;
+
+    use Modern::Perl::Prelude {
+        class   => 1,
+        corinna => 1,
+    };
+
+    1;
+PERL
+
+ok(!$ok_conflict_hash, 'conflicting class/corinna hash-style args die');
+like(
+    $@,
+    qr/^Modern::Perl::Prelude: options "-class" and "-corinna" are mutually exclusive/,
+    'hash-style conflict gives expected error',
 );
 
 done_testing;

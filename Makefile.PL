@@ -8,7 +8,7 @@ WriteMakefile(
     NAME              => 'Modern::Perl::Prelude',
     VERSION_FROM      => 'lib/Modern/Perl/Prelude.pm',
     ABSTRACT_FROM     => 'lib/Modern/Perl/Prelude.pm',
-    AUTHOR            => 'Sergey Kovalev <skov@cpan.org>',
+    AUTHOR            => 'Sergey Kovalev <skov@cpan.org>, Kirill Dmitriev <zaika.k1007@gmail.com>',
     LICENSE           => 'perl',
     MIN_PERL_VERSION  => '5.30.0',
 
@@ -24,6 +24,8 @@ WriteMakefile(
 
     TEST_REQUIRES => {
         'Test::More'             => 0,
+        'Test2::V0'              => 0,
+        'Test2::Tools::Spec'     => 0,
         'Feature::Compat::Class' => 0,
         'Feature::Compat::Defer' => 0,
         'Object::Pad'            => 0,
